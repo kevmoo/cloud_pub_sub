@@ -8,7 +8,7 @@ import 'package:cloud_pub_sub/cloud_pub_sub.dart';
 import 'package:googleapis/pubsub/v1.dart';
 import 'package:http/http.dart';
 
-final _topic = 'projects/j832com-3c809/topics/test1';
+import 'shared.dart';
 
 main(List<String> arguments) => doItWithClient(_doIt);
 
@@ -17,10 +17,11 @@ Future _doIt(Client client) async {
 
   var request = new PublishRequest()
     ..messages = [
-      new PubsubMessage()..dataAsBytes = UTF8.encode("hello, world!")
+      new PubsubMessage()
+        ..dataAsBytes = UTF8.encode("hello, world at ${new DateTime.now()}")
     ];
 
-  var response = await pubSub.projects.topics.publish(request, _topic);
+  var response = await pubSub.projects.topics.publish(request, topic);
 
   print(response.messageIds);
 }

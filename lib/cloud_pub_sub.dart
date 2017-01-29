@@ -1,7 +1,6 @@
 // Copyright (c) 2017, Kevin Moore. All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 
-
 import 'dart:async';
 import 'dart:io';
 
@@ -9,9 +8,6 @@ import 'package:googleapis/pubsub/v1.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart';
 import 'package:stack_trace/stack_trace.dart';
-
-
-
 
 Future<AutoRefreshingAuthClient> getClient() async {
   var json = new File('key.json').readAsStringSync();
@@ -22,7 +18,6 @@ Future<AutoRefreshingAuthClient> getClient() async {
 
   return creds;
 }
-
 
 Future<T> doItWithClient<T>(Future<T> func(Client client)) async {
   return await Chain.capture(() async {
