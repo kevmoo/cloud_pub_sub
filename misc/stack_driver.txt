@@ -1,0 +1,7 @@
+# To install the Stackdriver monitoring agent:
+$ curl -sSO https://repo.stackdriver.com/stack-install.sh
+$ sudo bash stack-install.sh --write-gcm
+
+# To install the Stackdriver logging agent:
+$ curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
+$ sudo bash install-logging-agent.sh
