@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:cloud_pub_sub/cloud_pub_sub.dart';
 import 'package:googleapis/compute/v1.dart';
@@ -21,107 +20,31 @@ main(List<String> args) async {
 
 Future<Uri> _createAutoscalerAlpha(
     Uri groupUrl, ComputeApi computeThing, Client client) async {
-  print("now creating the auto scaler!");
+  print("Creating the auto scaler...");
 
-  var jsonBody = JSON.encode({
-    "autoscalingPolicy": {
-      "minNumReplicas": 1,
+  var request = new Autoscaler()
+    ..autoscalingPolicy = new AutoscalingPolicy.fromJson({
+      "coolDownPeriodSec": 120,
+      "cpuUtilization": {"utilizationTarget": 0.6},
       "maxNumReplicas": 10,
-      "queueBasedScaling": {
-        "acceptableBacklogPerInstance": 1,
-        "cloudPubSub": {"topic": topic, "subscription": 'subNameThing'}
-      }
-    },
-    "name": autoScalerName,
-    "target": groupUrl.toString(),
-    "zone": theZone
-  });
+      "minNumReplicas": 1
+    })
+    ..target = groupUrl.toString();
 
-  final autoScalersPath = "$project/zones/$theZone/autoscalers/";
-  final expectedName = '$autoScalersPath$autoScalerName';
-
-  var response = await client.post("${gcpComputeV1Uri}$autoScalersPath",
-      headers: {"Content-Type": 'application/json; charset=utf-8'},
-      body: jsonBody);
-
-  var bodyMap = JSON.decode(response.body);
-
-  if (response.statusCode == 200) {
-    var operation =
-        await _waitForOperation(computeThing, new Operation.fromJson(bodyMap));
-
-    assert("$gcpComputeV1Uri$expectedName" == operation.targetLink);
-
-    return Uri.parse(operation.targetLink);
-  } else {
-    var messageMap =
-        ((bodyMap['error'] as Map)['errors'] as List).single as Map;
-
-    var message = messageMap['message'];
-
-    if (response.statusCode == 409 &&
-        message == "The resource '$expectedName' already exists") {
-      print(message);
-      return Uri.parse("$gcpComputeV1Uri$expectedName");
-    }
-
-    throw new DetailedApiRequestError(response.statusCode, message);
-  }
+  return await createIfNotExist(computeThing, null,
+      () => computeThing.autoscalers.insert(request, projectSimple, theZone));
 }
 
 Future<Uri> _createInstanceGroup(ComputeApi api) async {
-  var manager = new InstanceGroupManager.fromJson({
-    "name": managerName,
-    "instanceTemplate": "$project/global/instanceTemplates/$templateName",
-    "targetSize": 0
-  });
+  var manager = new InstanceGroupManager()
+    ..name = managerName
+    ..instanceTemplate = "$project/global/instanceTemplates/$templateName"
+    ..targetSize = 0;
 
-  print('creating an instance group');
-
+  print('Creating an instance group');
   final resource = "$project/zones/$theZone/instanceGroupManagers/$managerName";
-
-  try {
-    var thing =
-        await api.instanceGroupManagers.insert(manager, projectSimple, theZone);
-
-    thing = await _waitForOperation(api, thing);
-
-    assert("$gcpComputeV1Uri$resource" == thing.targetLink);
-
-    return Uri.parse(thing.targetLink);
-  } on DetailedApiRequestError catch (e) {
-    if (e.message == "The resource '$resource' already exists") {
-      print(e.message);
-      return Uri.parse("$gcpComputeV1Uri$resource");
-    }
-    print(prettyJson(e.errors.map((a) => a.originalJson).toList()));
-    print(e.message);
-    rethrow;
-  }
-}
-
-Future<Operation> _waitForOperation(ComputeApi api, Operation thing) async {
-  while (thing.status != 'DONE') {
-    var uri = Uri.parse(thing.selfLink);
-    assert(uri.pathSegments.take(4).join('/') == "compute/v1/$project");
-
-    var locationScope = uri.pathSegments[4];
-
-    switch (locationScope) {
-      case "zones":
-        thing =
-            await api.zoneOperations.get(projectSimple, theZone, thing.name);
-        break;
-      case "global":
-        thing = await api.globalOperations.get(projectSimple, thing.name);
-        break;
-      default:
-        throw "can't part at $locationScope \t $uri";
-    }
-  }
-  print('${thing.status} - ${thing.progress} - ${thing.targetLink}');
-
-  return thing;
+  return createIfNotExist(api, resource,
+      () => api.instanceGroupManagers.insert(manager, projectSimple, theZone));
 }
 
 // TODO(kevmoo) return the uri of the thing – at least?
@@ -182,19 +105,10 @@ Future _createInstanceTemplate(ComputeApi api) async {
     }
   });
 
-  try {
-    print('Trying to create a template...');
-    var operation = await api.instanceTemplates.insert(template, projectSimple);
-    operation = await _waitForOperation(api, operation);
-    print("created!");
-  } on DetailedApiRequestError catch (e) {
-    // TODO: do the actual check on this to make sure the URI is as expected
-    if (e.message.contains("already exists")) {
-      print(e.message);
-      return;
-    }
-    rethrow;
-  }
+  print("Creating instance template");
+  var resource = "$project/global/instanceTemplates/$templateName";
+  return createIfNotExist(api, resource,
+      () => api.instanceTemplates.insert(template, projectSimple));
 }
 
 final _install = r'''
