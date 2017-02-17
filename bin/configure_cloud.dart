@@ -119,7 +119,7 @@ Future<Operation> _waitForOperation(ComputeApi api, Operation thing) async {
         throw "can't part at $locationScope \t $uri";
     }
   }
-  print('${thing.status} - ${thing.progress} - ${thing.selfLink}');
+  print('${thing.status} - ${thing.progress} - ${thing.targetLink}');
 
   return thing;
 }
@@ -198,6 +198,8 @@ Future _createInstanceTemplate(ComputeApi api) async {
 }
 
 final _install = r'''
+curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
+sudo bash install-logging-agent.sh
 sudo apt-get install apt-transport-https --assume-yes
 sudo apt-get update
 sudo apt-get install apt-transport-https git --assume-yes
@@ -205,6 +207,6 @@ sudo sh -c 'curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
 sudo sh -c 'curl https://storage.googleapis.com/download.dartlang.org/linux/debian/dart_stable.list > /etc/apt/sources.list.d/dart_stable.list'
 sudo apt-get update
 sudo apt-get install dart --assume-yes
-dart
 dart --version
+logger "All done!"
 ''';

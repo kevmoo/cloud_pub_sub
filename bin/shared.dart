@@ -3,7 +3,9 @@ final String project = 'projects/$projectSimple';
 final topic = '$project/topics/test1';
 final gcpComputeV1Uri = "https://www.googleapis.com/compute/v1/";
 
+final _time = new DateTime.now().millisecondsSinceEpoch.toString();
+
 final theZone = 'us-central1-a';
-final managerName = "pubsubfun-manager3";
-final autoScalerName = 'pubsubfun-scaler3';
-final String templateName = 'pubsubfun3';
+final managerName = "psf-man-$_time";
+final autoScalerName = 'psf-scale4-$_time';
+final String templateName = 'psf-template-$_time';

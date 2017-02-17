@@ -5,8 +5,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_pub_sub/cloud_pub_sub.dart';
-import 'package:googleapis/pubsub/v1.dart';
 import 'package:googleapis/logging/v2.dart' as logging;
+import 'package:googleapis/pubsub/v1.dart';
 import 'package:http/http.dart';
 
 import 'shared.dart';
@@ -16,13 +16,6 @@ main(List<String> arguments) => doItWithClient(_doIt);
 Future _doIt(Client client) async {
   var log = new logging.LoggingApi(client);
 
-  /*
-  var things = await log.monitoredResourceDescriptors.list();
-  print(things.resourceDescriptors.map((mdr) {
-return "${mdr.displayName}\t${mdr.description}";
-  }).join('\n'));
-
-*/
   Future _doLogThing(String content) async {
     var resource = new logging.MonitoredResource()..type = 'project';
 
