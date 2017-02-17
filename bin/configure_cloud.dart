@@ -124,6 +124,7 @@ Future<Operation> _waitForOperation(ComputeApi api, Operation thing) async {
   return thing;
 }
 
+// TODO(kevmoo) return the uri of the thing – at least?
 Future _createInstanceTemplate(ComputeApi api) async {
   var template = new InstanceTemplate.fromJson({
     "name": templateName,
@@ -197,13 +198,13 @@ Future _createInstanceTemplate(ComputeApi api) async {
 }
 
 final _install = r'''
-sudo apt-get install apt-transport-https
+sudo apt-get install apt-transport-https --assume-yes
 sudo apt-get update
-sudo apt-get install apt-transport-https git
+sudo apt-get install apt-transport-https git --assume-yes
 sudo sh -c 'curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -'
 sudo sh -c 'curl https://storage.googleapis.com/download.dartlang.org/linux/debian/dart_stable.list > /etc/apt/sources.list.d/dart_stable.list'
 sudo apt-get update
-sudo apt-get install dart
+sudo apt-get install dart --assume-yes
 dart
 dart --version
 ''';
