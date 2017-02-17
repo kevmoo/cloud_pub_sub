@@ -6,6 +6,7 @@ import 'dart:convert';
 
 import 'package:cloud_pub_sub/cloud_pub_sub.dart';
 import 'package:googleapis/pubsub/v1.dart';
+import 'package:googleapis/logging/v2.dart' as logging;
 import 'package:http/http.dart';
 
 import 'shared.dart';
@@ -13,6 +14,30 @@ import 'shared.dart';
 main(List<String> arguments) => doItWithClient(_doIt);
 
 Future _doIt(Client client) async {
+  var log = new logging.LoggingApi(client);
+
+  /*
+  var things = await log.monitoredResourceDescriptors.list();
+  print(things.resourceDescriptors.map((mdr) {
+return "${mdr.displayName}\t${mdr.description}";
+  }).join('\n'));
+
+*/
+  Future _doLogThing(String content) async {
+    var resource = new logging.MonitoredResource()..type = 'project';
+
+    var entry = new logging.LogEntry()
+      ..logName = '$project/logs/my-test-log'
+      ..resource = resource
+      ..textPayload = content;
+
+    var response = await log.entries
+        .write(new logging.WriteLogEntriesRequest()..entries = [entry]);
+
+    print(response);
+    print(prettyJson(response));
+  }
+
   var pubSub = new PubsubApi(client).projects;
 
   var subName = '$project/subscriptions/kevmoo1';
@@ -31,6 +56,8 @@ Future _doIt(Client client) async {
   }
 
   print("We have a sub! - ${sub.name}");
+
+  await _doLogThing('starting!');
 
   while (true) {
     var pullRequest = new PullRequest()
