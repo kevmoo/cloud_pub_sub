@@ -7,44 +7,69 @@ import 'package:http/http.dart';
 
 import 'shared.dart';
 
-final theZone = 'us-central1-a';
-
 main(List<String> args) async {
   await doItWithClient((client) async {
     var computeThing = new ComputeApi(client);
 
-    await _createInstanceTemplate(computeThing.instanceTemplates);
+    await _createInstanceTemplate(computeThing);
 
     var groupUrl = await _createInstanceGroup(computeThing);
 
-    var jsonBody = JSON.encode({
-      "autoscalingPolicy": {
-        "minNumReplicas": 0,
-        "maxNumReplicas": 1,
-        "queueBasedScaling": {
-          "acceptableBacklogPerInstance": 1,
-          "cloudPubSub": {"topic": topic, "subscription": 'subNameThing'}
-        }
-      },
-      "name": "[AUTOSCALER_NAME]",
-      "target": "[URL_TO_MANAGED_INSTANCE_GROUP]",
-      "zone": "[ZONE]"
-    });
-
-    print("now creating the auto scaler!");
-
-    var response = await client.post(
-        "https://www.googleapis.com/compute/v1/projects/$projectSimple/zones/$theZone/autoscalers/",
-        headers: {"Content-Type": 'application/json; charset=utf-8'},
-        body: jsonBody);
-
-    print([response.statusCode]);
-    print(prettyJson(JSON.decode(response.body)));
+    await _createAutoscalerAlpha(groupUrl, computeThing, client);
   });
 }
 
+Future<Uri> _createAutoscalerAlpha(
+    Uri groupUrl, ComputeApi computeThing, Client client) async {
+  print("now creating the auto scaler!");
+
+  var jsonBody = JSON.encode({
+    "autoscalingPolicy": {
+      "minNumReplicas": 1,
+      "maxNumReplicas": 10,
+      "queueBasedScaling": {
+        "acceptableBacklogPerInstance": 1,
+        "cloudPubSub": {"topic": topic, "subscription": 'subNameThing'}
+      }
+    },
+    "name": autoScalerName,
+    "target": groupUrl.toString(),
+    "zone": theZone
+  });
+
+  final autoScalersPath = "$project/zones/$theZone/autoscalers/";
+  final expectedName = '$autoScalersPath$autoScalerName';
+
+  var response = await client.post("${gcpComputeV1Uri}$autoScalersPath",
+      headers: {"Content-Type": 'application/json; charset=utf-8'},
+      body: jsonBody);
+
+  var bodyMap = JSON.decode(response.body);
+
+  if (response.statusCode == 200) {
+    var operation =
+        await _waitForOperation(computeThing, new Operation.fromJson(bodyMap));
+
+    assert("$gcpComputeV1Uri$expectedName" == operation.targetLink);
+
+    return Uri.parse(operation.targetLink);
+  } else {
+    var messageMap =
+        ((bodyMap['error'] as Map)['errors'] as List).single as Map;
+
+    var message = messageMap['message'];
+
+    if (response.statusCode == 409 &&
+        message == "The resource '$expectedName' already exists") {
+      print(message);
+      return Uri.parse("$gcpComputeV1Uri$expectedName");
+    }
+
+    throw new DetailedApiRequestError(response.statusCode, message);
+  }
+}
+
 Future<Uri> _createInstanceGroup(ComputeApi api) async {
-  final managerName = "pubsubfun-manager";
   var manager = new InstanceGroupManager.fromJson({
     "name": managerName,
     "instanceTemplate": "$project/global/instanceTemplates/$templateName",
@@ -53,27 +78,21 @@ Future<Uri> _createInstanceGroup(ComputeApi api) async {
 
   print('creating an instance group');
 
-  final root = "https://www.googleapis.com/compute/v1/";
-
   final resource = "$project/zones/$theZone/instanceGroupManagers/$managerName";
 
   try {
     var thing =
         await api.instanceGroupManagers.insert(manager, projectSimple, theZone);
 
-    while (thing.status != 'DONE') {
-      print('Not done! - ${thing.status} - ${thing.progress}');
-      thing = await api.zoneOperations.get(projectSimple, theZone, thing.name);
-    }
-    print('DONE! - ${thing.status} - ${thing.progress}');
-    print(prettyJson(thing));
+    thing = await _waitForOperation(api, thing);
 
-    assert("$root$resource" == thing.targetLink);
+    assert("$gcpComputeV1Uri$resource" == thing.targetLink);
 
     return Uri.parse(thing.targetLink);
   } on DetailedApiRequestError catch (e) {
     if (e.message == "The resource '$resource' already exists") {
-      return Uri.parse("$root$resource");
+      print(e.message);
+      return Uri.parse("$gcpComputeV1Uri$resource");
     }
     print(prettyJson(e.errors.map((a) => a.originalJson).toList()));
     print(e.message);
@@ -81,13 +100,41 @@ Future<Uri> _createInstanceGroup(ComputeApi api) async {
   }
 }
 
-Future _createInstanceTemplate(InstanceTemplatesResourceApi api) async {
+Future<Operation> _waitForOperation(ComputeApi api, Operation thing) async {
+  while (thing.status != 'DONE') {
+    var uri = Uri.parse(thing.selfLink);
+    assert(uri.pathSegments.take(4).join('/') == "compute/v1/$project");
+
+    var locationScope = uri.pathSegments[4];
+
+    switch (locationScope) {
+      case "zones":
+        thing =
+            await api.zoneOperations.get(projectSimple, theZone, thing.name);
+        break;
+      case "global":
+        thing = await api.globalOperations.get(projectSimple, thing.name);
+        break;
+      default:
+        throw "can't part at $locationScope \t $uri";
+    }
+  }
+  print('${thing.status} - ${thing.progress} - ${thing.selfLink}');
+
+  return thing;
+}
+
+Future _createInstanceTemplate(ComputeApi api) async {
   var template = new InstanceTemplate.fromJson({
     "name": templateName,
     "description": "",
     "properties": {
       "machineType": "g1-small",
-      "metadata": {"items": []},
+      "metadata": {
+        "items": [
+          {"key": "startup-script", "value": _install}
+        ]
+      },
       "tags": {"items": []},
       "disks": [
         {
@@ -98,7 +145,7 @@ Future _createInstanceTemplate(InstanceTemplatesResourceApi api) async {
           "deviceName": "pubsubfun1",
           "initializeParams": {
             "sourceImage":
-                "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-8-jessie-v20170124",
+                "${gcpComputeV1Uri}projects/debian-cloud/global/images/debian-8-jessie-v20170124",
             "diskType": "pd-standard",
             "diskSizeGb": "10"
           }
@@ -107,7 +154,7 @@ Future _createInstanceTemplate(InstanceTemplatesResourceApi api) async {
       "canIpForward": false,
       "networkInterfaces": [
         {
-          "network": "projects/j832com-3c809/global/networks/default",
+          "network": "$project/global/networks/default",
           "accessConfigs": [
             {"name": "External NAT", "type": "ONE_TO_ONE_NAT"}
           ]
@@ -136,11 +183,12 @@ Future _createInstanceTemplate(InstanceTemplatesResourceApi api) async {
 
   try {
     print('Trying to create a template...');
-    await api.insert(template, projectSimple);
+    var operation = await api.instanceTemplates.insert(template, projectSimple);
+    operation = await _waitForOperation(api, operation);
     print("created!");
   } on DetailedApiRequestError catch (e) {
+    // TODO: do the actual check on this to make sure the URI is as expected
     if (e.message.contains("already exists")) {
-      print("Already there!");
       print(e.message);
       return;
     }
@@ -149,6 +197,7 @@ Future _createInstanceTemplate(InstanceTemplatesResourceApi api) async {
 }
 
 final _install = r'''
+sudo apt-get install apt-transport-https
 sudo apt-get update
 sudo apt-get install apt-transport-https git
 sudo sh -c 'curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -'
