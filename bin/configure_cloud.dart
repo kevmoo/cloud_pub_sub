@@ -22,16 +22,20 @@ Future<Uri> _createAutoscalerAlpha(
     Uri groupUrl, ComputeApi computeThing, Client client) async {
   print("Creating the auto scaler...");
 
+  var policy = new AutoscalingPolicy.fromJson({
+    "coolDownPeriodSec": 120,
+    "cpuUtilization": {"utilizationTarget": 0.6},
+    "maxNumReplicas": 10,
+    "minNumReplicas": 1
+  });
   var request = new Autoscaler()
-    ..autoscalingPolicy = new AutoscalingPolicy.fromJson({
-      "coolDownPeriodSec": 120,
-      "cpuUtilization": {"utilizationTarget": 0.6},
-      "maxNumReplicas": 10,
-      "minNumReplicas": 1
-    })
-    ..target = groupUrl.toString();
+    ..autoscalingPolicy = policy
+    ..target = groupUrl.toString()
+    ..name = autoScalerName;
 
-  return await createIfNotExist(computeThing, null,
+  return await createIfNotExist(
+      computeThing,
+      "$project/zones/$theZone/autoscalers/$autoScalerName",
       () => computeThing.autoscalers.insert(request, projectSimple, theZone));
 }
 
