@@ -9,7 +9,6 @@ final String project = 'projects/$projectSimple';
 final topic = '$project/topics/test1';
 final gcpComputeV1Uri = "https://www.googleapis.com/compute/v1/";
 
-//final _time = 'bob0';
 final _time = new DateTime.now()
     .toIso8601String()
     .toLowerCase()
@@ -63,7 +62,7 @@ Future<Operation> waitForOperation(ComputeApi api, Operation thing) async {
         throw "can't part at $locationScope \t $uri";
     }
     stdout.write('...${thing.progress}');
-    await new Future.delayed(const Duration(milliseconds: 500));
+    await new Future.delayed(const Duration(seconds: 1));
   }
   stdout.writeln();
   print('\t${thing.status} - ${thing.targetLink}');
