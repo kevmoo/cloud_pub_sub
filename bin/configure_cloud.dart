@@ -34,20 +34,21 @@ Future<Uri> _createAutoscalerAlpha(
 
   return await createIfNotExist(
       computeThing,
-      "$project/zones/$theZone/autoscalers/$autoScalerName",
-      () => computeThing.autoscalers.insert(request, projectSimple, theZone));
+      "$projectPath/zones/$gcZone/autoscalers/$autoScalerName",
+      () => computeThing.autoscalers.insert(request, projectName, gcZone));
 }
 
 Future<Uri> _createInstanceGroup(ComputeApi api) async {
   var manager = new InstanceGroupManager()
     ..name = managerName
-    ..instanceTemplate = "$project/global/instanceTemplates/$templateName"
+    ..instanceTemplate = "$projectPath/global/instanceTemplates/$templateName"
     ..targetSize = 0;
 
   print('Creating an instance group');
-  final resource = "$project/zones/$theZone/instanceGroupManagers/$managerName";
+  final resource =
+      "$projectPath/zones/$gcZone/instanceGroupManagers/$managerName";
   return createIfNotExist(api, resource,
-      () => api.instanceGroupManagers.insert(manager, projectSimple, theZone));
+      () => api.instanceGroupManagers.insert(manager, projectName, gcZone));
 }
 
 // TODO(kevmoo) return the uri of the thing – at least?
@@ -81,7 +82,7 @@ Future _createInstanceTemplate(ComputeApi api) async {
       "canIpForward": false,
       "networkInterfaces": [
         {
-          "network": "$project/global/networks/default",
+          "network": "$projectPath/global/networks/default",
           "accessConfigs": [
             {"name": "External NAT", "type": "ONE_TO_ONE_NAT"}
           ]
@@ -109,9 +110,9 @@ Future _createInstanceTemplate(ComputeApi api) async {
   });
 
   print("Creating instance template");
-  var resource = "$project/global/instanceTemplates/$templateName";
-  return createIfNotExist(api, resource,
-      () => api.instanceTemplates.insert(template, projectSimple));
+  var resource = "$projectPath/global/instanceTemplates/$templateName";
+  return createIfNotExist(
+      api, resource, () => api.instanceTemplates.insert(template, projectName));
 }
 
 final _install = r'''

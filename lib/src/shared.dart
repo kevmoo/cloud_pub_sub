@@ -11,5 +11,5 @@ final _time = new DateTime.now()
 
 final managerName = "psf-man-$_time";
 final autoScalerName = 'psf-scale-$_time';
-final String templateName = 'psf-template-$_time';
-final topic = '$project/topics/test1';
+final templateName = 'psf-template-$_time';
+final topic = '$projectPath/topics/test1';

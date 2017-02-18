@@ -1,31 +1,17 @@
 import 'dart:async';
 
 import 'package:cloud_pub_sub/cloud_pub_sub.dart';
-import 'package:cloud_pub_sub/src/shared.dart';
-import 'package:googleapis/logging/v2.dart' as logging;
 import 'package:googleapis/pubsub/v1.dart';
 import 'package:http/http.dart';
 
 main(List<String> arguments) => doItWithClient(_doIt);
 
 Future _doIt(Client client) async {
-  var log = new logging.LoggingApi(client);
-
-  Future _doLogThing(Map<String, Object> jsonContent) async {
-    var resource = new logging.MonitoredResource()..type = 'project';
-
-    var entry = new logging.LogEntry()
-      ..logName = '$project/logs/my-test-log'
-      ..resource = resource
-      ..jsonPayload = jsonContent;
-
-    await log.entries
-        .write(new logging.WriteLogEntriesRequest()..entries = [entry]);
-  }
+  var logger = new CloudLogger(projectName, 'worker-log', client);
 
   var pubSub = new PubsubApi(client).projects;
 
-  var subName = '$project/subscriptions/kevmoo1';
+  var subName = '$projectPath/subscriptions/kevmoo1';
 
   Subscription sub;
   try {
@@ -42,7 +28,7 @@ Future _doIt(Client client) async {
 
   print("We have a sub! - ${sub.name}");
 
-  await _doLogThing({'worker': 'starting!'});
+  await logger.log({'worker': 'starting!'});
 
   while (true) {
     var pullRequest = new PullRequest()

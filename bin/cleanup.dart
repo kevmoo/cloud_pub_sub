@@ -7,7 +7,7 @@ main() async {
 
     // list all instance groups
     var groups =
-        await computeThing.instanceGroupManagers.list(projectSimple, theZone);
+        await computeThing.instanceGroupManagers.list(projectName, gcZone);
 
     assert(groups.nextPageToken == null);
     for (var group in groups.items ?? const []) {
@@ -17,13 +17,13 @@ main() async {
         await waitForOperation(
             computeThing,
             await computeThing.instanceGroupManagers
-                .delete(projectSimple, theZone, group.name));
+                .delete(projectName, gcZone, group.name));
       } on DetailedApiRequestError catch (e) {
         print(e.message);
       }
     }
 
-    var templates = await computeThing.instanceTemplates.list(projectSimple);
+    var templates = await computeThing.instanceTemplates.list(projectName);
 
     assert(templates.nextPageToken == null);
     for (var template in templates.items ?? const <InstanceTemplate>[]) {
@@ -32,7 +32,7 @@ main() async {
         await waitForOperation(
             computeThing,
             await computeThing.instanceTemplates
-                .delete(projectSimple, template.name));
+                .delete(projectName, template.name));
       } on DetailedApiRequestError catch (e) {
         print(e.message);
       }

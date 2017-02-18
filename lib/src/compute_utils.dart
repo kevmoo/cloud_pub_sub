@@ -31,17 +31,16 @@ Future<Uri> createIfNotExist(
 Future<Operation> waitForOperation(ComputeApi api, Operation thing) async {
   while (thing.status != 'DONE') {
     var uri = Uri.parse(thing.selfLink);
-    assert(uri.pathSegments.take(4).join('/') == "compute/v1/$project");
+    assert(uri.pathSegments.take(4).join('/') == "compute/v1/$projectPath");
 
     var locationScope = uri.pathSegments[4];
 
     switch (locationScope) {
       case "zones":
-        thing =
-            await api.zoneOperations.get(projectSimple, theZone, thing.name);
+        thing = await api.zoneOperations.get(projectName, gcZone, thing.name);
         break;
       case "global":
-        thing = await api.globalOperations.get(projectSimple, thing.name);
+        thing = await api.globalOperations.get(projectName, thing.name);
         break;
       default:
         throw "can't part at $locationScope \t $uri";
