@@ -1,5 +1,7 @@
 import 'names.dart';
 
+String getTaggedName(String prefix) => '$prefix-$_time';
+
 final _time = new DateTime.now()
     .toIso8601String()
     .toLowerCase()
@@ -11,5 +13,5 @@ final _time = new DateTime.now()
 
 final managerName = "psf-man-$_time";
 final autoScalerName = 'psf-scale-$_time';
-final templateName = 'psf-template-$_time';
+
 final topic = '$projectPath/topics/test1';
