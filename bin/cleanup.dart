@@ -16,7 +16,7 @@ main() async {
       print(group.name);
 
       try {
-        waitForOperation(
+        await waitForOperation(
             computeThing,
             await computeThing.instanceGroupManagers
                 .delete(projectSimple, theZone, group.name));
@@ -31,7 +31,7 @@ main() async {
     for (var template in templates.items ?? const <InstanceTemplate>[]) {
       print(template.name);
       try {
-        waitForOperation(
+        await waitForOperation(
             computeThing,
             await computeThing.instanceTemplates
                 .delete(projectSimple, template.name));
