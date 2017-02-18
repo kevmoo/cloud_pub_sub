@@ -1,14 +1,10 @@
-// Copyright (c) 2017, Kevin Moore. All rights reserved. Use of this source code
-// is governed by a BSD-style license that can be found in the LICENSE file.
-
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_pub_sub/cloud_pub_sub.dart';
+import 'package:cloud_pub_sub/src/shared.dart';
 import 'package:googleapis/pubsub/v1.dart';
 import 'package:http/http.dart';
-
-import 'shared.dart';
 
 main(List<String> arguments) => doItWithClient(_doIt);
 

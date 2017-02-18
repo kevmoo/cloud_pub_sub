@@ -1,34 +1,26 @@
-// Copyright (c) 2017, Kevin Moore. All rights reserved. Use of this source code
-// is governed by a BSD-style license that can be found in the LICENSE file.
-
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:cloud_pub_sub/cloud_pub_sub.dart';
+import 'package:cloud_pub_sub/src/shared.dart';
 import 'package:googleapis/logging/v2.dart' as logging;
 import 'package:googleapis/pubsub/v1.dart';
 import 'package:http/http.dart';
-
-import 'shared.dart';
 
 main(List<String> arguments) => doItWithClient(_doIt);
 
 Future _doIt(Client client) async {
   var log = new logging.LoggingApi(client);
 
-  Future _doLogThing(String content) async {
+  Future _doLogThing(Map<String, Object> jsonContent) async {
     var resource = new logging.MonitoredResource()..type = 'project';
 
     var entry = new logging.LogEntry()
       ..logName = '$project/logs/my-test-log'
       ..resource = resource
-      ..textPayload = content;
+      ..jsonPayload = jsonContent;
 
-    var response = await log.entries
+    await log.entries
         .write(new logging.WriteLogEntriesRequest()..entries = [entry]);
-
-    print(response);
-    print(prettyJson(response));
   }
 
   var pubSub = new PubsubApi(client).projects;
@@ -50,7 +42,7 @@ Future _doIt(Client client) async {
 
   print("We have a sub! - ${sub.name}");
 
-  await _doLogThing('starting!');
+  await _doLogThing({'worker': 'starting!'});
 
   while (true) {
     var pullRequest = new PullRequest()
@@ -70,7 +62,7 @@ Future _doIt(Client client) async {
 
     var message = pullResponse.receivedMessages.single;
 
-    var messageContent = UTF8.decode(message.message.dataAsBytes);
+    var messageContent = message.message.data;
 
     print("working on: $messageContent");
 

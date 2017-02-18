@@ -1,10 +1,9 @@
 import 'dart:async';
 
 import 'package:cloud_pub_sub/cloud_pub_sub.dart';
+import 'package:cloud_pub_sub/src/shared.dart';
 import 'package:googleapis/compute/v1.dart';
 import 'package:http/http.dart';
-
-import 'shared.dart';
 
 main(List<String> args) async {
   await doItWithClient((client) async {

@@ -1,27 +1,12 @@
-import 'dart:io';
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cloud_pub_sub/cloud_pub_sub.dart';
 import 'package:googleapis/compute/v1.dart';
 
-final String projectSimple = 'j832com-3c809';
-final String project = 'projects/$projectSimple';
-final topic = '$project/topics/test1';
+import 'names.dart';
+
 final gcpComputeV1Uri = "https://www.googleapis.com/compute/v1/";
-
-final _time = new DateTime.now()
-    .toIso8601String()
-    .toLowerCase()
-    .replaceAll(':', '-')
-    .replaceAll('.', '-')
-    .split('-')
-    .take(5)
-    .join('-');
-
-final theZone = 'us-central1-a';
-final managerName = "psf-man-$_time";
-final autoScalerName = 'psf-scale-$_time';
-final String templateName = 'psf-template-$_time';
 
 Future<Uri> createIfNotExist(
     ComputeApi api, String resource, Future<Operation> creator()) async {

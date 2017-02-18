@@ -1,8 +1,6 @@
 import 'package:cloud_pub_sub/cloud_pub_sub.dart';
 import 'package:googleapis/compute/v1.dart';
 
-import 'shared.dart';
-
 main() async {
   await doItWithClient((client) async {
     var computeThing = new ComputeApi(client);
