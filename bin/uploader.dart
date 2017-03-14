@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:cloud_pub_sub/cloud_pub_sub.dart';
 import 'package:cloud_pub_sub/src/shared.dart';
@@ -13,8 +12,7 @@ Future _doIt(Client client) async {
 
   var request = new PublishRequest()
     ..messages = [
-      new PubsubMessage()
-        ..dataAsBytes = UTF8.encode("hello, world at ${new DateTime.now()}")
+      new PubsubMessage()..data = "hello, world at ${new DateTime.now()}"
     ];
 
   var response = await pubSub.projects.topics.publish(request, topic);
